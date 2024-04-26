@@ -1,0 +1,50 @@
+# Copyright The OpenTelemetry Authors
+# SPDX-License-Identifier: Apache-2.0
+
+receivers:
+ otlp:
+   protocols:
+     grpc:
+     http:
+       
+     
+
+
+processors:
+ batch:
+   timeout: 1s
+
+exporters:
+  debug:
+  otlp:
+    endpoint: "0.0.0.0:4317"
+    tls:
+      insecure: true
+
+  logging:
+   loglevel: info
+
+   
+  prometheus:
+   endpoint: "0.0.0.0:8889"
+    
+    #tls:
+      #insecure: true
+  
+
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      #exporters: []
+      processors: [batch] 
+      exporters: [debug,otlp]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]  # Optional for metrics
+      exporters: [debug,prometheus,otlp]
+    logs:
+      receivers: [otlp]
+      processors: [batch]  # Optional for logs
+      exporters: [logging,otlp]

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Details</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='show.css') }}">
+</head>
+<body>
+    <h1>Student Details</h1>
+
+    <form action="/find" method="post">
+        <label for="query">Search:</label>
+        <input type="text" id="query" name="query" required>
+        <button type="submit">Search</button>
+    </form>
+    
+    <table border="1">
+        <tr>
+            <th>Name</th>
+            <th>USN</th>
+            <th>Semester</th>
+            <th>Section</th>
+            <th>Actions</th>
+        </tr>
+        {% for student in students %}
+        <tr>
+            <td>
+                <span class="static-text">{{ student.name }}</span>
+                <input class="edit-field" type="text" name="name" value="{{ student.name }}" style="display: none;">
+            </td>
+            <td>
+                <span class="static-text">{{ student.usn }}</span>
+                <input class="edit-field" type="text" name="usn" value="{{ student.usn }}" style="display: none;">
+            </td>
+            <td>
+                <span class="static-text">{{ student.sem }}</span>
+                <input class="edit-field" type="text" name="sem" value="{{ student.sem }}" style="display: none;">
+            </td>
+            <td>
+                <span class="static-text">{{ student.section }}</span>
+                <input class="edit-field" type="text" name="section" value="{{ student.section }}" style="display: none;">
+            </td>
+            <td>
+                <form action="/edit/{{ student.usn }}" method="get"> 
+                    <button type="submit">Edit</button>
+                </form>
+                <br>
+                <form action="/delete/{{ student.usn }}" method="get"> 
+                    <button type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    
+    <a href="/">Back to Home</a>
+</body>
+</html>
