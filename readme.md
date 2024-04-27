@@ -15,7 +15,7 @@ The file `mongodb_pv.yaml` specifies the attributes of the PersistentVolume (PV)
 
 Additionally, the files `mongodb.yaml` and `web_app.yaml` contain configurations for MongoDB and web application deployments, respectively.
 
-To apply the configuration, utilize `kubectl` as follows:
+To apply the configuration, use `kubectl` as follows:
 
 ```
 kubectl apply -f mongodb_pv.yaml
