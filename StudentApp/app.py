@@ -33,7 +33,8 @@ logger = logging.getLogger(__name__)
  # This handler will write logs to 'app.log' file
 file_handler = logging.FileHandler(os.path.join(log_directory, 'app.log')) 
 file_handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - studentapp - %(levelname)s - %(message)s')  
+formatter = logging.Formatter('%(asctime)s - %(funcName)s - %(process)d - %(thread)d - %(levelname)s - %(message)s')
+
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
@@ -128,7 +129,7 @@ logging.getLogger().addHandler(handler)
 
 # Initialize Flask application
 app = Flask(__name__)
-app.config['MONGO_URI'] = 'mongodb://localhost:27017/mydatabase'  # MongoDB connection URI
+app.config['MONGO_URI'] = 'mongodb://mongodb:27017/mydatabase'  # MongoDB connection URI
 mongo = PyMongo(app)
 
 mongo.db.students.create_index([('name', 'text'), ('usn', 'text'), ('sem', 'text'), ('section', 'text')])
