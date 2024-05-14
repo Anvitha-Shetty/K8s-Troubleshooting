@@ -19,3 +19,6 @@ kubectl proxy --port=8080 &
 
 //after creating the python file run
 python3 k8s_access.py
+
+//use the following command to export counter metrics from prometheus to text file
+curl -s http://<Prometheus_cluster_ip>:9090/api/v1/query?query=forms_submitted_counter_total > count.txt
