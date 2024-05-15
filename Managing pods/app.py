@@ -6,7 +6,8 @@ import sys
 app = Flask(__name__)
 
 
-config.load_kube_config(config_file="/root/.kube/config")
+config.load_incluster_config()
+
 
 v1 = client.CoreV1Api()
 namespace = "default"
