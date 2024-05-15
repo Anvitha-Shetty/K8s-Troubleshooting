@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pod Metrics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Pod Metrics</h1>
+        <table class="metrics-table">
+            <tr>
+                <th>Pod Name</th>
+                <th>CPU Usage</th>
+                <th>Memory Usage</th>
+            </tr>
+            {% for pod in pod_metrics %}
+                <tr>
+                    <td>{{ pod.pod_name }}</td>
+                    <td>{{ pod.cpu_usage }}</td>
+                    <td>{{ pod.memory_usage }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+</body>
+</html>
