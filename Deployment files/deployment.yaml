@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pod-manager
+  template:
+    metadata:
+      labels:
+        app: pod-manager
+    spec:
+      containers:
+      - name: pod-manager
+        image: chiragd07/manage_pods:latest
+        ports:
+        - containerPort: 5000
+
+
+
+
