@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pod CPU and Memory Usage</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='alerts.css') }}">
+    <script>
+        function confirmRestart(podName) {
+            return confirm(`Are you sure you want to restart the pod: ${podName}?`);
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Pod CPU and Memory Usage</h1>
+        {% if alerts %}
+            <div class="alerts">
+                <h2>Alert</h2>
+                <p>The following pods are using more resources than the threshold:</p>
+                <ul>
+                    {% for alert in alerts %}
+                        <li>
+                            {{ alert[0] }}: {{ alert[2] }}m CPU, {{ alert[4] }}Mi Memory
+                            <form action="{{ url_for('restart_db') }}" method="post" style="display:inline;">
+                                <input type="hidden" name="pod_name" value="{{ alert[0] }}">
+                                <input type="submit" value="Restart" onclick="return confirmRestart('{{ alert[0] }}')">
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        <table>
+            <tr>
+                <th>Pod Name</th>
+                <th>CPU Usage (Original)</th>
+                <th>CPU Usage (Converted to millicores)</th>
+                <th>Memory Usage (Original)</th>
+                <th>Memory Usage (Converted to Mi)</th>
+                <th>Actions</th>
+            </tr>
+            {% for pod in pod_usages %}
+            <tr>
+                <td>{{ pod[0] }}</td>
+                <td>{{ pod[1] }}</td>
+                <td>{{ pod[2] }}</td>
+                <td>{{ pod[3] }}</td>
+                <td>{{ pod[4] }}</td>
+                <td>
+                    <form action="{{ url_for('restart_db') }}" method="post" style="display:inline;">
+                        <input type="hidden" name="pod_name" value="{{ pod[0] }}">
+                        <input type="submit" value="Restart" onclick="return confirmRestart('{{ pod[0] }}')">
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</body>
+</html>

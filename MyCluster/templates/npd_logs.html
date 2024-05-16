@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Node Problem Detector Logs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='npd.css') }}">
+  </head>
+  <body>
+    <div class="container">
+      <h1>Node Problem Detector Logs</h1>
+      {% for log in npd_logs %}
+        <h2>Pod: {{ log.pod_name }}</h2>
+        <pre>{{ log.log }}</pre>
+      {% endfor %}
+    </div>
+    <a href="/cluster">Back to Home</a>
+  </body>
+</html>
