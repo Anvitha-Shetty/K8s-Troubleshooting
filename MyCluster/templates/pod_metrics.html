@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pod Metrics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1 style="text-align: center;">Pod Metrics</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Pod Name</th>
+                <th>CPU Usage</th>
+                <th>Memory Usage</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pod in pod_metrics %}
+            <tr>
+                <td>{{ pod['pod_name'] }}</td>
+                <td>{{ pod['cpu_usage'] }}</td>
+                <td>{{ pod['memory_usage'] }}</td>
+                <td>
+                    <form action="{{ url_for('restart') }}" method="post">
+                        <input type="hidden" name="pod_name" value="{{ pod['pod_name'] }}">
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
