@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cluster-monitor
+  template:
+    metadata:
+      labels:
+        app: cluster-monitor
+    spec:
+      containers:
+        - name: cluster-monitor
+          image: chiragd07/cluster_monitor:latest
+          ports:
+            - containerPort: 5000
