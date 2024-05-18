@@ -281,6 +281,19 @@ def check_pods():
     pod_metrics = get_pod_metrics()
     return render_template('pod_metrics.html', pod_metrics=pod_metrics)
 
+def get_pod_logs(pod_name):
+    try:
+        log = v1.read_namespaced_pod_log(name=pod_name, namespace=namespace)
+        return log
+    except ApiException as e:
+        print(f"Exception when calling CoreV1Api->read_namespaced_pod_log: {e}")
+        return "Error fetching logs"
+
+@app.route('/pod_logs/<pod_name>', methods=['GET'])
+def pod_logs(pod_name):
+    log = get_pod_logs(pod_name)
+    return log  # Return plain text log
+
 @app.route('/deployments')
 def check_deployments():
     deployment_list = get_deployments()
