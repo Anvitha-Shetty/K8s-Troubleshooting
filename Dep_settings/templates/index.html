@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Management Interface</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Kubernetes Management Interface</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Namespace</th>
+                <th>Replicas</th>
+                <th>CPU Limit</th>
+                <th>Memory Limit</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for deployment in deployments %}
+            <tr>
+                <td>{{ deployment.metadata.name }}</td>
+                <td>{{ deployment.metadata.namespace }}</td>
+                <td>{{ deployment.spec.replicas }}</td>
+                <td>{{ deployment.spec.template.spec.containers[0].resources.limits.cpu }}</td>
+                <td>{{ deployment.spec.template.spec.containers[0].resources.limits.memory }}</td>
+                <td>
+                    <button onclick="editDeployment('{{ deployment.metadata.name }}', '{{ deployment.metadata.namespace }}')">Change</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div id="deployment-form" style="display: none;">
+        <h2>Edit Deployment</h2>
+        <form id="update-form">
+            <input type="hidden" id="deployment-name" name="name">
+            <input type="hidden" id="deployment-namespace" name="namespace">
+            <label for="replicas">Replicas:</label>
+            <input type="number" id="replicas" name="replicas" required><br>
+            <label for="cpu_limit">CPU Limit:</label>
+            <input type="text" id="cpu_limit" name="cpu_limit"><br>
+            <label for="memory_limit">Memory Limit:</label>
+            <input type="text" id="memory_limit" name="memory_limit"><br>
+            <button type="submit">Update</button>
+        </form>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
