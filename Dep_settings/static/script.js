@@ -1,12 +1,12 @@
 function editDeployment(name, namespace) {
-    const form = document.getElementById('deployment-form');
+    const modal = document.getElementById('deployment-form-modal');
     const deploymentNameInput = document.getElementById('deployment-name');
     const deploymentNamespaceInput = document.getElementById('deployment-namespace');
     
     deploymentNameInput.value = name;
     deploymentNamespaceInput.value = namespace;
 
-    form.style.display = 'block';
+    modal.style.display = 'block';
 }
 
 document.getElementById('update-form').addEventListener('submit', function(event) {
@@ -14,11 +14,6 @@ document.getElementById('update-form').addEventListener('submit', function(event
 
     const form = event.target;
     const formData = new FormData(form);
-    const data = {};
-
-    formData.forEach((value, key) => {
-        data[key] = value;
-    });
 
     fetch('/update_deployment', {
         method: 'POST',
@@ -26,12 +21,38 @@ document.getElementById('update-form').addEventListener('submit', function(event
     })
     .then(response => response.json())
     .then(data => {
-        alert(data.status);
+        if (data.status === 'success') {
+            alert('Deployment updated successfully.');
+        } else {
+            alert(`Error: ${data.message}`);
+        }
         form.reset();
-        document.getElementById('deployment-form').style.display = 'none';
+        document.getElementById('deployment-form-modal').style.display = 'none';
         location.reload();
     })
     .catch(error => {
         console.error('Error:', error);
     });
+});
+
+const modal = document.getElementById('deployment-form-modal');
+const span = document.getElementsByClassName('close')[0];
+
+span.onclick = function() {
+    modal.style.display = 'none';
+}
+
+window.onclick = function(event) {
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const notReadyRows = document.querySelectorAll('tr.not-ready');
+    if (notReadyRows.length > 0) {
+        const alertBox = document.getElementById('alert');
+        alertBox.textContent = 'Some deployments are not ready and require more CPU and memory.';
+        alertBox.style.display = 'block';
+    }
 });
