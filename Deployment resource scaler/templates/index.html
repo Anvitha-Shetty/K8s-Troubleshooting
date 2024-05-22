@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kubernetes Deployments</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Kubernetes Deployments Scaler</h1>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Namespace</th>
+            <th>CPU Limits</th>
+            <th>Memory Limits</th>
+            <th>Actions</th>
+        </tr>
+        {% for deployment in deployments %}
+        <tr>
+            <td>{{ deployment.metadata.name }}</td>
+            <td>{{ deployment.metadata.namespace }}</td>
+            <td>{{ deployment.spec.template.spec.containers[0].resources.limits.get('cpu', 'Not Set') if deployment.spec.template.spec.containers[0].resources.limits else 'Not Set' }}</td>
+            <td>{{ deployment.spec.template.spec.containers[0].resources.limits.get('memory', 'Not Set') if deployment.spec.template.spec.containers[0].resources.limits else 'Not Set' }}</td>
+            <td><a href="{{ url_for('edit', namespace=deployment.metadata.namespace, name=deployment.metadata.name) }}">Edit</a> | 
+                <a href="{{ url_for('pods', namespace=deployment.metadata.namespace, name=deployment.metadata.name) }}">View Pods</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
