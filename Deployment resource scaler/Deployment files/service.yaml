@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: resources-manager
+spec:
+  selector:
+    app: resources-manager
+  ports:
+    - protocol: TCP
+      port: 8087
+      targetPort: 5000
+  type: NodePort

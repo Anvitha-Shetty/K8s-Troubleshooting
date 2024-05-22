@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resources-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resources-manager
+  template:
+    metadata:
+      labels:
+        app: resources-manager
+    spec:
+      containers:
+        - name: resources-manager
+          image: chiragd07/pod_scaler:latest
+          ports:
+            - containerPort: 5000
