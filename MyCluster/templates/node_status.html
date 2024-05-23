@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Node Conditions and Events</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Node Conditions</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Node Name</th>
+                <th>Condition Type</th>
+                <th>Status</th>
+                <th>Reason</th>
+                <th>Message</th>
+                <th>Last Heartbeat Time</th>
+                <th>Last Transition Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for condition in node_conditions %}
+                <tr>
+                    <td>{{ condition.node_name }}</td>
+                    <td>{{ condition.condition_type }}</td>
+                    <td>{{ condition.status }}</td>
+                    <td>{{ condition.reason }}</td>
+                    <td>{{ condition.message }}</td>
+                    <td>{{ condition.last_heartbeat_time }}</td>
+                    <td>{{ condition.last_transition_time }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h1>Node Events</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Node Name</th>
+                <th>Reason</th>
+                <th>Message</th>
+                <th>Type</th>
+                <th>First Timestamp</th>
+                <th>Last Timestamp</th>
+                <th>Count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in node_events %}
+                <tr>
+                    <td>{{ event.node_name }}</td>
+                    <td>{{ event.reason }}</td>
+                    <td>{{ event.message }}</td>
+                    <td>{{ event.type }}</td>
+                    <td>{{ event.first_timestamp }}</td>
+                    <td>{{ event.last_timestamp }}</td>
+                    <td>{{ event.count }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ url_for('cluster') }}">Back to Dashboard</a>
+</body>
+</html>

@@ -6,7 +6,7 @@ import sys
 
 app = Flask(__name__)
 
-config.load_incluster_config()
+config.load_kube_config()
 
 
 
@@ -188,26 +188,44 @@ def get_namespaces():
         print(f"Exception when calling CoreV1Api->list_namespace: {e}")
         return []
 
-def get_np_detector_logs():
+def get_node_conditions():
     try:
-        api_instance = client.CoreV1Api()
-        namespace = 'default'  # NPD is deployed in the 'default' namespace
-        label_selector = 'app=node-problem-detector'
-        pods = api_instance.list_namespaced_pod(namespace=namespace, label_selector=label_selector)
-        
-        npd_logs = []
-
-        for pod in pods.items:
-            pod_name = pod.metadata.name
-            log = api_instance.read_namespaced_pod_log(name=pod_name, namespace=namespace)
-            npd_logs.append({
-                "pod_name": pod_name,
-                "log": log
-            })
-
-        return npd_logs
+        nodes = v1.list_node()
+        node_conditions = []
+        for node in nodes.items:
+            for condition in node.status.conditions:
+                node_conditions.append({
+                    "node_name": node.metadata.name,
+                    "condition_type": condition.type,
+                    "status": condition.status,
+                    "reason": condition.reason,
+                    "message": condition.message,
+                    "last_heartbeat_time": condition.last_heartbeat_time,
+                    "last_transition_time": condition.last_transition_time
+                })
+        return node_conditions
     except ApiException as e:
-        print(f"Exception when calling CoreV1Api->read_namespaced_pod_log: {e}")
+        print(f"Exception when fetching node conditions: {e}")
+        return []
+
+def get_node_events():
+    try:
+        events = v1.list_event_for_all_namespaces()
+        node_events = []
+        for event in events.items:
+            if "Node" in event.involved_object.kind:
+                node_events.append({
+                    "node_name": event.involved_object.name,
+                    "reason": event.reason,
+                    "message": event.message,
+                    "type": event.type,
+                    "first_timestamp": event.first_timestamp,
+                    "last_timestamp": event.last_timestamp,
+                    "count": event.count
+                })
+        return node_events
+    except ApiException as e:
+        print(f"Exception when fetching node events: {e}")
         return []
 
 def restart_pod(pod_name):
@@ -309,16 +327,18 @@ def check_namespaces():
     namespace_list = get_namespaces()
     return render_template('namespaces.html', namespaces=namespace_list)
 
-@app.route('/npd-logs')
-def check_np_detector_logs():
-    npd_logs = get_np_detector_logs()
-    return render_template('npd_logs.html', npd_logs=npd_logs)
-
 @app.route('/restart', methods=['POST'])
 def restart():
     pod_name = request.form['pod_name']
     restart_pod(pod_name)
     return redirect(url_for('cluster'))
+
+@app.route('/check_node_status')
+def check_node_status():
+    node_conditions = get_node_conditions()
+    node_events = get_node_events()
+    return render_template('node_status.html', node_conditions=node_conditions, node_events=node_events)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
