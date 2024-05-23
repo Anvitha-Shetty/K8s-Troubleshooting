@@ -6,7 +6,7 @@ import sys
 
 app = Flask(__name__)
 
-config.load_kube_config()
+config.load_incluster_config()
 
 
 
