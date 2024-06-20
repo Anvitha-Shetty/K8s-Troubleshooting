@@ -1,22 +1,22 @@
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, render_template, redirect, url_for, request,jsonify
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 import signal
+import sys
 import paramiko
-from flask import jsonify
 import subprocess
 import sys
 
 app = Flask(__name__)
 
-config.load_kube_config()
+config.load_kube_config("/root/.kube/config")
+
 
 v1 = client.CoreV1Api()
+apps_v1 = client.AppsV1Api()
 namespace = "default"
-label_selectors = {
-    "app=web": {"cpu": 6, "memory": 85},  
-    "app=mongodb": {"cpu": 6, "memory": 70} 
-}
+deployment_names = ["web", "mongodb"]
+
 
 def convert_cpu_usage(cpu_usage_str):
     if cpu_usage_str.endswith('n'):
@@ -38,6 +38,25 @@ def convert_memory_usage(memory_usage_str):
     else:
         return float(memory_usage_str) / (1024 * 1024)
 
+def get_deployment_limits(api_instance, namespace, deployment_names):
+    limits = {}
+    for deployment_name in deployment_names:
+        try:
+            deployment = api_instance.read_namespaced_deployment(deployment_name, namespace)
+            containers = deployment.spec.template.spec.containers
+            for container in containers:
+                cpu_limit = container.resources.limits.get('cpu')
+                memory_limit = container.resources.limits.get('memory')
+                if cpu_limit and memory_limit:
+                    cpu_limit_m = convert_cpu_usage(cpu_limit)
+                    memory_limit_mi = convert_memory_usage(memory_limit)
+                    limits[f"app={deployment_name}"] = {
+                        "cpu": cpu_limit_m * 0.6,  
+                        "memory": memory_limit_mi * 0.6  
+                    }
+        except client.exceptions.ApiException as e:
+            print(f"Error fetching deployment {deployment_name}: {e}")
+    return limits
 
 def get_pod_cpu_memory_usage(api_instance, namespace, label_selectors):
     try:
@@ -73,33 +92,74 @@ def restart_pod_manager(api_instance, namespace, pod_name):
     except Exception as e:
         print(f"Error restarting pod {pod_name}: {e}")
 
-##
+# Define default values for resource limits
+DEFAULT_CPU_LIMIT = '500m'  # Adjust as necessary
+DEFAULT_MEMORY_LIMIT = '512Mi'  # Adjust as necessary
+
+# Route to display the list of deployments
+@app.route('/scale',methods=['POST','GET'])
+def scaler():
+    v1 = client.AppsV1Api()
+    deployments = []
+    try:
+        deployments = v1.list_deployment_for_all_namespaces().items
+    except ApiException as e:
+        print(f"Exception when listing deployments: {e}")
+    # Filter to include only 'web' and 'mongodb' deployments
+    deployments = [d for d in deployments if d.metadata.name in ['web', 'mongodb']]
+    return render_template('scale_index.html', deployments=deployments)
+
+# Route to edit a specific deployment
+@app.route('/edit/<namespace>/<name>', methods=['POST','GET'])
+def edit(namespace, name):
+    v1 = client.AppsV1Api()
+    deployment = v1.read_namespaced_deployment(name, namespace)
+    
+    if request.method == 'POST':
+        if 'reset' in request.form:
+            new_cpu = DEFAULT_CPU_LIMIT
+            new_memory = DEFAULT_MEMORY_LIMIT
+        else:
+            new_cpu = request.form['cpu']
+            new_memory = request.form['memory']
+        
+        # Ensure limits dictionary exists
+        if not deployment.spec.template.spec.containers[0].resources.limits:
+            deployment.spec.template.spec.containers[0].resources.limits = {}
+
+        deployment.spec.template.spec.containers[0].resources.limits['cpu'] = new_cpu
+        deployment.spec.template.spec.containers[0].resources.limits['memory'] = new_memory
+        
+        v1.patch_namespaced_deployment(name, namespace, deployment)
+        
+        return redirect(url_for('scaler'))
+    
+    return render_template('scale_edit.html', deployment=deployment)
+
 def get_node_metrics():
     try:
-        output = subprocess.check_output(["kubectl", "top", "nodes"]).decode('utf-8')
-        lines = output.split('\n')[1:] 
+        api_instance = client.CustomObjectsApi()
+        group = 'metrics.k8s.io'
+        version = 'v1beta1'
+        namespace = ''
+        plural = 'nodes'
+        metrics = api_instance.list_cluster_custom_object(group, version, plural)
         node_metrics = []
 
-        for line in lines:
-            if not line:
-                continue
-            parts = line.split()
-            node_name = parts[0]
-            cpu_usage = parts[1]
-            cpu_percent = parts[2]
-            memory_usage = parts[3]
-            memory_percent = parts[4]
+        for item in metrics['items']:
+            node_name = item['metadata']['name']
+            cpu_usage = item['usage']['cpu']
+            memory_usage = item['usage']['memory']
             node_metrics.append({
                 "node_name": node_name,
-                "cpu_usage": f"{cpu_usage} ({cpu_percent})",
-                "memory_usage": f"{memory_usage} ({memory_percent})"
+                "cpu_usage": cpu_usage,
+                "memory_usage": memory_usage
             })
 
         return node_metrics
-    except subprocess.CalledProcessError as e:
-        print(f"Error running kubectl top nodes: {e}")
+    except ApiException as e:
+        print(f"Exception when calling CustomObjectsApi->list_cluster_custom_object: {e}")
         return []
-##
 
 def get_pod_metrics():
     try:
@@ -125,6 +185,10 @@ def get_pod_metrics():
     except ApiException as e:
         print(f"Exception when calling CustomObjectsApi->list_namespaced_custom_object: {e}")
         return []
+
+
+
+
 
 def get_deployments():
     try:
@@ -192,7 +256,6 @@ def get_namespaces():
         print(f"Exception when calling CoreV1Api->list_namespace: {e}")
         return []
 
-##  
 def get_node_conditions():
     try:
         nodes = v1.list_node()
@@ -220,6 +283,7 @@ def get_node_conditions():
         print(f"Exception when fetching node conditions: {e}")
         return []
 
+
 def get_node_events():
     try:
         events = v1.list_event_for_all_namespaces()
@@ -240,47 +304,6 @@ def get_node_events():
         print(f"Exception when fetching node events: {e}")
         return []
 
-@app.route('/restart-node/<node_name>', methods=['POST'])
-def restart_node(node_name):
-    # Get the password from the request
-    password = request.json.get('password')
-    
-    if not password:
-        return jsonify({'status': 'Failed', 'message': 'Password is required'}), 400
-
-    # SSH parameters
-    worker_node_ip = node_name  # Use the node name as the IP address
-    username = 'anvitha'
-
-    # SSH connection
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    
-    try:
-        ssh.connect(worker_node_ip, username=username, password=password)
-    except Exception as e:
-        return jsonify({'status': 'Failed', 'message': str(e)}), 500
-
-    # Execute the command to restart kubelet
-    command = f'echo {password} | sudo -S systemctl restart kubelet'
-    stdin, stdout, stderr = ssh.exec_command(command)
-
-    # Wait for the command to complete
-    while not stdout.channel.exit_status_ready():
-        pass
-
-    # Get the exit status
-    exit_status = stdout.channel.recv_exit_status()
-
-    ssh.close()
-
-    # Check if the command succeeded
-    if exit_status == 0:
-        return jsonify({'status': 'Restarted Success'}), 200
-    else:
-        return jsonify({'status': 'Failed', 'message': stderr.read().decode()}), 500
-
-##
 def restart_pod(pod_name):
     try:
         api_instance = client.CoreV1Api()
@@ -289,25 +312,22 @@ def restart_pod(pod_name):
     except ApiException as e:
         print(f"Exception when calling CoreV1Api->delete_namespaced_pod: {e}")
 
-
 @app.route('/')
 def index():
     return render_template('login.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def handle_login():
-    error_message = None  # Initialize error_message variable
+    error_message = None
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
 
-        # Basic validation
         if not username or not password:
             error_message = 'Please enter both username and password.'
         else:
-            # Replace with your actual authentication logic (e.g., database check)
             if username == 'admin' and password == 'admin':
-                return redirect(url_for('welcome'))  # Redirect to welcome page
+                return redirect(url_for('welcome'))
             else:
                 error_message = 'Invalid username or password.'
 
@@ -315,18 +335,27 @@ def handle_login():
 
 @app.route('/welcome')
 def welcome():
-    return render_template('welcome.html')  # Simple welcome page content
-
+    return render_template('welcome.html')
 @app.route('/db_application')
 def db_app():
+    return render_template('alerts.html')
+
+@app.route('/api/pod_usages')
+def api_pod_usages():
+    label_selectors = get_deployment_limits(apps_v1, namespace, deployment_names)
     pod_usages = get_pod_cpu_memory_usage(v1, namespace, label_selectors)
     alerts = []
     for pod in pod_usages:
-        selector = pod[5] 
+        selector = pod[5]
         thresholds = label_selectors.get(selector, {})
         if pod[2] > thresholds.get("cpu", float("inf")) or pod[4] > thresholds.get("memory", float("inf")):
             alerts.append(pod)
-    return render_template('alerts.html', pod_usages=pod_usages, alerts=alerts)
+    return {"pod_usages": pod_usages, "alerts": alerts}
+
+@app.route('/api/thresholds')
+def api_thresholds():
+    label_selectors = get_deployment_limits(apps_v1, namespace, deployment_names)
+    return jsonify(label_selectors)
 
 @app.route('/restart_db', methods=['POST'])
 def restart_db():
@@ -346,7 +375,7 @@ def cluster():
 def check_nodes():
     node_metrics = get_node_metrics()
     return render_template('node_metrics.html', node_metrics=node_metrics)
-    
+
 @app.route('/pods')
 def check_pods():
     pod_metrics = get_pod_metrics()
@@ -386,12 +415,51 @@ def restart():
     restart_pod(pod_name)
     return redirect(url_for('cluster'))
 
+@app.route('/restart-node/<node_name>', methods=['POST'])
+def restart_node(node_name):
+    # Get the password from the request
+    password = request.json.get('password')
+    
+    if not password:
+        return jsonify({'status': 'Failed', 'message': 'Password is required'}), 400
+
+    # SSH parameters
+    worker_node_ip = node_name  # Use the node name as the IP address
+    username = 'chirag'
+
+    # SSH connection
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    
+    try:
+        ssh.connect(worker_node_ip, username=username, password=password)
+    except Exception as e:
+        return jsonify({'status': 'Failed', 'message': str(e)}), 500
+
+    # Execute the command to restart kubelet
+    command = f'echo {password} | sudo -S systemctl restart kubelet'
+    stdin, stdout, stderr = ssh.exec_command(command)
+
+    # Wait for the command to complete
+    while not stdout.channel.exit_status_ready():
+        pass
+
+    # Get the exit status
+    exit_status = stdout.channel.recv_exit_status()
+
+    ssh.close()
+
+    # Check if the command succeeded
+    if exit_status == 0:
+        return jsonify({'status': 'Restarted Success'}), 200
+    else:
+        return jsonify({'status': 'Failed', 'message': stderr.read().decode()}), 500
+
 @app.route('/check_node_status')
 def check_node_status():
     node_conditions = get_node_conditions()
     node_events = get_node_events()
     return render_template('node_status.html', node_conditions=node_conditions, node_events=node_events)
-
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -24,59 +24,140 @@
             transform: scale(1.05);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
+        .alerts {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+        }
+        .alerts h2 {
+            margin-top: 0;
+        }
+        .alerts p {
+            margin-bottom: 5px;
+        }
+        .alerts ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .alerts li {
+            margin-bottom: 5px;
+        }
+        .alerts li form {
+            display: inline;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
     </style>
     <script>
-        function confirmRestart(podName) {
-            return confirm(`Are you sure you want to restart the pod: ${podName}?`);
+        async function fetchPodUsages() {
+            try {
+                const response = await fetch('/api/pod_usages');
+                const data = await response.json();
+                updatePodUsages(data.pod_usages);
+                updateAlerts(data.alerts);
+            } catch (error) {
+                console.error('Error fetching pod usages:', error);
+            }
         }
+
+        function updatePodUsages(podUsages) {
+            const tableBody = document.querySelector('#pod-usage-table tbody');
+            tableBody.innerHTML = '';
+            podUsages.forEach(pod => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${pod[0]}</td>
+                    <td>${pod[1]}</td>
+                    <td>${pod[2]}</td>
+                    <td>${pod[3]}</td>
+                    <td>${pod[4]}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function updateAlerts(alerts) {
+            const alertsContainer = document.querySelector('.alerts');
+            if (alerts.length > 0) {
+                alertsContainer.innerHTML = `
+                    <h2>Alerts</h2>
+                    <ul>
+                        ${alerts.map(alert => `
+                            <li>
+                                Pod <strong>${alert[0]}</strong> is over the threshold: CPU ${alert[2]}m, Memory ${alert[4]}Mi
+                                <form method="POST" action="/restart_db">
+                                    <input type="hidden" name="pod_name" value="${alert[0]}">
+                                    <input type="submit" value="Restart">
+                                </form>
+                                <form method="POST" action="{{ url_for('scaler') }}">
+                                    <input type="hidden" name="pod_name" value="${alert[0]}">
+                                    <input type="submit" value="Scale">
+                                </form>
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+            } else {
+                alertsContainer.innerHTML = 'No Alerts';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setInterval(fetchPodUsages, 500);
+        });
     </script>
 </head>
 <body>
     <div class="container">
         <h1>Pod CPU and Memory Usage</h1>
-        {% if alerts %}
-            <div class="alerts">
-                <h2>Alert</h2>
-                <p>The following pods are using more resources than the threshold:</p>
-                <ul>
-                    {% for alert in alerts %}
-                        <li>
-                            {{ alert[0] }}: {{ alert[2] }}m CPU, {{ alert[4] }}Mi Memory
-                            <form action="{{ url_for('restart_db') }}" method="post" style="display:inline;">
-                                <input type="hidden" name="pod_name" value="{{ alert[0] }}">
-                                <input type="submit" value="Restart" onclick="return confirmRestart('{{ alert[0] }}')">
-                            </form>
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-        <table>
-            <tr>
-                <th>Pod Name</th>
-                <th>CPU Usage (Original)</th>
-                <th>CPU Usage (Converted to millicores)</th>
-                <th>Memory Usage (Original)</th>
-                <th>Memory Usage (Converted to Mi)</th>
-                <th>Actions</th>
-            </tr>
-            {% for pod in pod_usages %}
-            <tr>
-                <td>{{ pod[0] }}</td>
-                <td>{{ pod[1] }}</td>
-                <td>{{ pod[2] }}</td>
-                <td>{{ pod[3] }}</td>
-                <td>{{ pod[4] }}</td>
-                <td>
-                    <form action="{{ url_for('restart_db') }}" method="post" style="display:inline;">
-                        <input type="hidden" name="pod_name" value="{{ pod[0] }}">
-                        <input type="submit" value="Restart" onclick="return confirmRestart('{{ pod[0] }}')">
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
+        <div class="alerts"></div>
+        <table id="pod-usage-table">
+            <thead>
+                <tr>
+                    <th>Pod Name</th>
+                    <th>CPU Usage (Original)</th>
+                    <th>CPU Usage (Converted to millicores)</th>
+                    <th>Memory Usage (Original)</th>
+                    <th>Memory Usage (Converted to Mi)</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
         </table>
+        <a href="{{ url_for('welcome') }}" class="back-button">Back</a>
+        <a href="{{ url_for('scaler') }}" class="back-button">Scale</a>
     </div>
-    <a href="/welcome" class="back-button">Back to Home</a>
 </body>
 </html>
