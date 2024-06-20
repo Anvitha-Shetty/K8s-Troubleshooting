@@ -4,6 +4,43 @@
     <meta charset="UTF-8">
     <title>Node Conditions and Events</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .red-text {
+            color: red;
+        }
+        /* Modal styles */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgb(0,0,0); 
+            background-color: rgba(0,0,0,0.4); 
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 30%;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
     <h1>Node Conditions</h1>
@@ -17,19 +54,21 @@
                 <th>Message</th>
                 <th>Last Heartbeat Time</th>
                 <th>Last Transition Time</th>
+                <th>Remediation</th>
             </tr>
         </thead>
         <tbody>
             {% for condition in node_conditions %}
-                <tr>
-                    <td>{{ condition.node_name }}</td>
-                    <td>{{ condition.condition_type }}</td>
-                    <td>{{ condition.status }}</td>
-                    <td>{{ condition.reason }}</td>
-                    <td>{{ condition.message }}</td>
-                    <td>{{ condition.last_heartbeat_time }}</td>
-                    <td>{{ condition.last_transition_time }}</td>
-                </tr>
+            <tr {% if condition.status == 'Unknown' and condition.reason == 'NodeStatusUnknown' %} class="red-text" {% endif %}>
+                <td>{{ condition.node_name }}</td>
+                <td>{{ condition.condition_type }}</td>
+                <td>{{ condition.status }}</td>
+                <td>{{ condition.reason }}</td>
+                <td>{{ condition.message }}</td>
+                <td>{{ condition.last_heartbeat_time }}</td>
+                <td>{{ condition.last_transition_time }}</td>
+                <td>{% if condition.condition_type == 'Ready' and condition.status == 'Unknown' and condition.reason == 'NodeStatusUnknown' %}<button onclick="restartNode('{{ condition.node_name }}')">Restart</button>{% endif %}</td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>
@@ -49,19 +88,90 @@
         </thead>
         <tbody>
             {% for event in node_events %}
-                <tr>
-                    <td>{{ event.node_name }}</td>
-                    <td>{{ event.reason }}</td>
-                    <td>{{ event.message }}</td>
-                    <td>{{ event.type }}</td>
-                    <td>{{ event.first_timestamp }}</td>
-                    <td>{{ event.last_timestamp }}</td>
-                    <td>{{ event.count }}</td>
-                </tr>
+            <tr>
+                <td>{{ event.node_name }}</td>
+                <td>{{ event.reason }}</td>
+                <td>{{ event.message }}</td>
+                <td>{{ event.type }}</td>
+                <td>{{ event.first_timestamp }}</td>
+                <td>{{ event.last_timestamp }}</td>
+                <td>{{ event.count }}</td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>
-
     <a href="{{ url_for('cluster') }}">Back to Dashboard</a>
+
+    <!-- The Modal -->
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <p>Enter the password for the worker node:</p>
+            <input type="password" id="passwordInput" />
+            <button onclick="submitPassword()">Submit</button>
+        </div>
+    </div>
+
+    <script>
+        let currentNodeName;
+
+        function restartNode(nodeName) {
+            currentNodeName = nodeName;
+
+            // Ask for confirmation
+            if (confirm(`Do you want to restart node ${nodeName}?`)) {
+                // Show the password modal
+                document.getElementById('passwordModal').style.display = "block";
+            }
+        }
+
+        function submitPassword() {
+            const password = document.getElementById('passwordInput').value;
+
+            if (password) {
+                fetch(`/restart-node/${currentNodeName}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: password })
+                })
+                .then(response => response.json())
+                .then(result => {
+                    alert(result.status);
+                    if (result.status === 'Restarted Success') {
+                        // Refresh the page
+                        location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+
+                // Close the modal
+                document.getElementById('passwordModal').style.display = "none";
+            } else {
+                alert('Password is required to restart the node.');
+            }
+        }
+
+        // Get the modal
+        var modal = document.getElementById("passwordModal");
+
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
+
+        // When the user clicks on <span> (x), close the modal
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    </script>
 </body>
 </html>
