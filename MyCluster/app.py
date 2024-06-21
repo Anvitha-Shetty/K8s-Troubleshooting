@@ -425,7 +425,7 @@ def restart_node(node_name):
 
     # SSH parameters
     worker_node_ip = node_name  # Use the node name as the IP address
-    username = 'chirag'
+    username = 'anvitha'
 
     # SSH connection
     ssh = paramiko.SSHClient()
@@ -451,7 +451,7 @@ def restart_node(node_name):
 
     # Check if the command succeeded
     if exit_status == 0:
-        return jsonify({'status': 'Restarted Success'}), 200
+        return jsonify({'status': 'Restarted Kubelet Successfully'}), 200
     else:
         return jsonify({'status': 'Failed', 'message': stderr.read().decode()}), 500
 
