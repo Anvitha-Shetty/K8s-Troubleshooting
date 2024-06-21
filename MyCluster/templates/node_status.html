@@ -67,7 +67,7 @@
                 <td>{{ condition.message }}</td>
                 <td>{{ condition.last_heartbeat_time }}</td>
                 <td>{{ condition.last_transition_time }}</td>
-                <td>{% if condition.condition_type == 'Ready' and condition.status == 'Unknown' and condition.reason == 'NodeStatusUnknown' %}<button onclick="restartNode('{{ condition.node_name }}')">Restart</button>{% endif %}</td>
+                <td>{% if condition.condition_type == 'Ready' and condition.status == 'Unknown' and condition.reason == 'NodeStatusUnknown' %}<button onclick="restartNode('{{ condition.node_name }}')">Remediate</button>{% endif %}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -119,7 +119,7 @@
             currentNodeName = nodeName;
 
             // Ask for confirmation
-            if (confirm(`Do you want to restart node ${nodeName}?`)) {
+            if (confirm(`Do you want to restart kubelet for node ${nodeName}?`)) {
                 // Show the password modal
                 document.getElementById('passwordModal').style.display = "block";
             }
@@ -139,7 +139,7 @@
                 .then(response => response.json())
                 .then(result => {
                     alert(result.status);
-                    if (result.status === 'Restarted Success') {
+                    if (result.status === 'Restarted Kubelet Successfully') {
                         // Refresh the page
                         location.reload();
                     }
