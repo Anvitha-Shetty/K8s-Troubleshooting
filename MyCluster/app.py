@@ -51,8 +51,8 @@ def get_deployment_limits(api_instance, namespace, deployment_names):
                     cpu_limit_m = convert_cpu_usage(cpu_limit)
                     memory_limit_mi = convert_memory_usage(memory_limit)
                     limits[f"app={deployment_name}"] = {
-                        "cpu": cpu_limit_m * 0.6,  
-                        "memory": memory_limit_mi * 0.6  
+                        "cpu": cpu_limit_m * 0.8,  
+                        "memory": memory_limit_mi * 0.8  
                     }
         except client.exceptions.ApiException as e:
             print(f"Error fetching deployment {deployment_name}: {e}")
