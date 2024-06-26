@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Deployment</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Scale Deployment: {{ deployment.metadata.name }}</h1>
+    <form method="POST">
+        <label for="cpu">CPU Limit:</label>
+        <input type="text" name="cpu" id="cpu" placeholder="CPU in (m)" value="{{ deployment.spec.template.spec.containers[0].resources.limits.get('cpu', '') if deployment.spec.template.spec.containers[0].resources.limits else '' }}">
+        <br>
+        <label for="memory">Memory Limit:</label>
+        <input type="text" name="memory" id="memory" placeholder="Memory in (Mi)"value="{{ deployment.spec.template.spec.containers[0].resources.limits.get('memory', '') if deployment.spec.template.spec.containers[0].resources.limits else '' }}">
+        <br>
+        <button type="submit">Save</button>
+        <button type="submit" name="reset">Set to Default</button>
+    </form>
+</body>
+</html>

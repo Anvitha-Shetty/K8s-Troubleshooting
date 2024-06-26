@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Deployments</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Deployments</h1>
+    <table>
+        <tr>
+            <th>Namespace</th>
+            <th>Name</th>
+            <th>Replicas</th>
+            <th>Available Replicas</th>
+        </tr>
+        {% for deployment in deployments %}
+        <tr>
+            <td>{{ deployment.namespace }}</td>
+            <td>{{ deployment.name }}</td>
+            <td>{{ deployment.replicas }}</td>
+            <td>{{ deployment.available_replicas }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <a href="/cluster">Back to Dashboard</a>
+</body>
+</html>
