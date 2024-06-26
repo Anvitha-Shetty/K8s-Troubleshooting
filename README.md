@@ -2,7 +2,7 @@
 
 This project focuses on troubleshooting and enhancing the debuggability of Kubernetes clusters and application performance. It integrates several key tools and components to monitor, trace, and manage Kubernetes resources effectively.
 
-## Part 1: Kubernetes Database Application
+## Kubernetes Database Application
 
 ### Overview
 
@@ -13,7 +13,7 @@ This part of the project involves developing and deploying a database applicatio
 - **Database Operations**: Basic CRUD operations (Create, Read, Update, Delete) are implemented for managing student records.
 - **Error Handling**: Error paths are implemented for each function, with logs, metrics, and traces collected to facilitate debugging and monitoring.
 
-## Part 2: Observability and Monitoring
+## Observability and Monitoring
 
 ### Overview
 
@@ -33,7 +33,7 @@ The observability stack integrates metrics collection, distributed tracing, and 
 
 The Kubernetes database application developed in Part 1 serves as an example for monitoring and visualizing database metrics in Grafana.
 
-## Part 3: Remediation Module
+## Remediation Module
 
 ### Overview
 
