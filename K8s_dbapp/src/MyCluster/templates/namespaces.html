@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Namespaces</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Namespaces</h1>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Status</th>
+        </tr>
+        {% for namespace in namespaces %}
+        <tr>
+            <td>{{ namespace.name }}</td>
+            <td>{{ namespace.status }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <a href="/cluster">Back to Dashboard</a>
+</body>
+</html>
